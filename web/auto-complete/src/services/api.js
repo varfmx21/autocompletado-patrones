@@ -34,3 +34,22 @@ export const obtenerSugerencias = async (fileName, palabra) => {
         throw error;
     }
 }
+
+export const obtenerIndicesPatrones = async (fileName, patron) => {
+    try {
+        const response = await fetch(`${API_URL}/kmp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_name: fileName,
+                patron: patron
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error en obtenerSugerencias', error);
+        throw error;
+    }
+}

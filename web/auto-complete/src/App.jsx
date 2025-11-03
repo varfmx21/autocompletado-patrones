@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { obtenerSugerencias, subirArchivo } from './services/api';
+import { obtenerIndicesPatrones, obtenerSugerencias, subirArchivo } from './services/api';
 
 const suggestions = [
   "React", "Vue", "Angular", "Svelte", "TailwindCSS", "JavaScript", "TypeScript", "Node.js", "HTML", "CSS", "Redux", "GraphQL"
@@ -8,10 +8,16 @@ const suggestions = [
 function App() {
   const [inputText, setInputText] = useState("");
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [indexesPatrones, setindexesPatrones] = useState([]);
   const [fileContent, setFileContent] = useState("");
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [estadisticas, setEstadisticas] = useState({
+    totalOcurrencias: 0,
+    tiempoBusqueda: 0,
+    tiempoAutocompletado: 0
+  })
 
   // Manejar la carga del archivo
   const handleFileUpload = async (e) => {
@@ -54,6 +60,11 @@ function App() {
       setLoading(true);
       const response = await obtenerSugerencias(fileName, query);
       setFilteredSuggestions(response.sugerencias || []);
+      setEstadisticas(prev => ({
+        ...prev,
+        tiempoAutocompletado: response.tiempo_busqueda || 0
+      }));
+      console.log(response.tiempo_busqueda)
     } catch (err) {
       console.error('Error al obtener sugerencias', err);
       setFilteredSuggestions([]);
@@ -63,9 +74,61 @@ function App() {
   };
 
   // Manejar clic en sugerencia
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = async (suggestion) => {
     setInputText(suggestion);
     setFilteredSuggestions([]);
+
+    try {
+      setLoading(true);
+      const response = await obtenerIndicesPatrones(fileName, suggestion);
+      setindexesPatrones(response.ocurrencias || []);
+      setEstadisticas(prev => ({
+        ...prev,
+        totalOcurrencias: response.total_ocurrencias || 0,
+        tiempoBusqueda: response.tiempo_busqueda || 0,
+      }));
+      console.log('Índices encontrados:', response.ocurrencias, 'palabra:', suggestion);
+    } catch (err) {
+      console.error('Error al obtener indices', err);
+      setindexesPatrones([]);
+      setEstadisticas({
+        totalOcurrencias: 0,
+        tiempoBusqueda: 0,
+        tiempoAutocompletado: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resaltarTexto = (texto, indices, patron) => {
+    if (!indices || indices.length === 0) {
+      return texto;
+    }
+
+    const fragmentos = [];
+    let ultimoIndice = 0;
+
+    indices.forEach((inicio) => {
+      const fin = inicio + patron.length;
+      
+      // Texto antes del patrón
+      fragmentos.push(texto.substring(ultimoIndice, inicio));
+      
+      // Patrón resaltado
+      fragmentos.push(
+        <mark key={inicio} className="bg-yellow-300">
+          {texto.substring(inicio, fin)}
+        </mark>
+      );
+      
+      ultimoIndice = fin;
+    });
+
+    // Texto restante después del último patrón
+    fragmentos.push(texto.substring(ultimoIndice));
+
+    return fragmentos;
   };
 
   return (
@@ -82,31 +145,54 @@ function App() {
 
       <div className="w-[80%] h-[80%] bg-gray-50 flex flex-col z-10 p-4">
         {/* Sección superior: Botón de subir archivo y vista del texto */}
-        <div className="w-full h-[60%] flex flex-col mb-4">
-          <div className="mb-2">
+        <div className="w-full h-[70%] flex flex-col mb-4">
+          <div className="mb-2 flex items-center justify-between">
             <input
               type="file"
               accept=".txt"
               onChange={handleFileUpload}
               className="px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-700"
             />
+            
+            {/* Estadísticas */}
+            {estadisticas.totalOcurrencias > 0 && (
+              <div className="flex gap-6 text-sm">
+                <div>
+                  <span className="text-gray-600">Coincidencias: </span>
+                  <span className="font-bold text-blue-600">{estadisticas.totalOcurrencias}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Busqueda: </span>
+                  <span className="font-bold text-green-600">{(estadisticas.tiempoBusqueda * 1000).toFixed(3)} ms</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Autocompletado: </span>
+                  <span className="font-bold text-purple-600">{(estadisticas.tiempoAutocompletado * 1000).toFixed(3)} ms</span>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex-1 bg-white border-2 border-gray-300 rounded-md p-4 overflow-auto">
             <pre className="whitespace-pre-wrap text-sm">
-              {fileContent || "No hay archivo cargado. Selecciona un archivo .txt"}
+              {fileContent ? resaltarTexto(fileContent, indexesPatrones, inputText) : "No hay archivo cargado. Selecciona un archivo .txt"}
             </pre>
           </div>
         </div>
 
         {/* Sección inferior: Input y sugerencias */}
-        <div className="w-full h-[35%] flex gap-4">
+        <div className="w-full h-[25%] flex gap-4">
           {/* Input de búsqueda */}
           <div className="w-[70%] h-full">
             <input
               type="text"
               value={inputText}
               onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && inputText && fileName) {
+                  handleSuggestionClick(inputText)
+                }
+              }}
               className="w-full h-full p-4 border-2 border-gray-300 rounded-md text-lg"
               placeholder="Escribe para buscar..."
             />

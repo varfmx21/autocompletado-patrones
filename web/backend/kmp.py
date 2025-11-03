@@ -56,15 +56,6 @@ def kmp(texto, patron):
     return ocurrencias
 
 def imprimir_contexto(texto, palabra, ocurrencias, caracteres=50):
-    """
-    Imprime cada ocurrencia de la palabra con contexto alrededor
-    
-    Args:
-        texto: El texto completo donde se buscó
-        palabra: La palabra buscada
-        ocurrencias: Lista de posiciones donde se encontró la palabra
-        caracteres: Cantidad de caracteres a mostrar antes y después (default: 50)
-    """
     if not ocurrencias:
         print("No se encontraron ocurrencias")
         return
@@ -99,7 +90,7 @@ def buscar_texto(texto, palabra):
     return ocurrencias, num_ocurrencias, tiempo
 
 if __name__ == "__main__":
-    ruta_archivo = '../src/texto-1.txt'
+    ruta_archivo = '/home/c4rnage/Desktop/c4rnage/repos/autocompletado-patrones/web/src/pg70652.txt'
 
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
@@ -111,9 +102,11 @@ if __name__ == "__main__":
         print(f"Error al leer el archivo: {e}")
         exit(1)
     
-    palabras_buscar = "a"
+    palabras_buscar = "Cthulhu"
 
     ocurrencias, num_ocurrencias, tiempo = buscar_texto(texto, palabras_buscar)
+
+    print(ocurrencias)
 
     imprimir_contexto(texto, palabras_buscar, ocurrencias, caracteres=50)
 
