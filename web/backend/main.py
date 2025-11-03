@@ -224,6 +224,33 @@ async def buscar_patrones(request: TextSearchRequest):
         tiempo_busqueda=tiempo
     )
 
+@app.post("/z", response_model=TextSearchResponse)
+async def buscar_patrones_z(request: TextSearchRequest):
+    if request.file_name not in archivos:
+        raise HTTPException(
+            status_code=404,
+            detail="Primero debes subir un archivo. Utiliza /upload"
+        )
+    
+    if not request.patron:
+        raise HTTPException(
+            status_code=400,
+            detail="El patrón no debe estar vacio."
+        )
+    
+    texto = archivos[request.file_name]["texto"]
+
+    ocurrencias, num_ocurrencias, tiempo = kmp.buscar_texto_z(texto, request.patron)
+
+    return TextSearchResponse(
+        file_name=request.file_name,
+        patron=request.patron,
+        ocurrencias=ocurrencias,
+        total_ocurrencias=num_ocurrencias,
+        tiempo_busqueda=tiempo
+    )
+
+
 @app.post("/autocompletado", response_model=AutoCompleteResponse)
 async def autocompletado(request: AutoCompleteRequest):
     if request.file_name not in archivos:

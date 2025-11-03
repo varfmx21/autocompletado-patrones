@@ -55,6 +55,46 @@ def kmp(texto, patron):
     
     return ocurrencias
 
+def z_function(s):
+    n = len(s)
+    if n == 0:
+        return []
+    
+    z = [0] * n
+    
+    l = 0
+    r = 0
+    
+    for i in range(1, n):
+        if i < r:
+            z[i] = min(r - i, z[i - l])
+        
+        while i + z[i] < n and s[z[i]] == s[i + z[i]]:
+            z[i] += 1
+        
+        if i + z[i] > r:
+            l = i
+            r = i + z[i]
+    
+    return z
+
+def z_algorithm(texto, patron):
+    if not patron or not texto:
+        return []
+    
+    s = patron + "$" + texto
+    n = len(s)
+    m = len(patron)
+    
+    z = z_function(s)
+    
+    ocurrencias = []
+    for i in range(m + 1, n):
+        if z[i] == m:
+            ocurrencias.append(i - m - 1)
+    
+    return ocurrencias
+
 def imprimir_contexto(texto, palabra, ocurrencias, caracteres=50):
     if not ocurrencias:
         print("No se encontraron ocurrencias")
@@ -78,7 +118,6 @@ def imprimir_contexto(texto, palabra, ocurrencias, caracteres=50):
         print("-" * 80)
 
 def buscar_texto(texto, palabra):
-
     inicio = time.perf_counter()
     ocurrencias = kmp(texto, palabra)
     fin = time.perf_counter()
@@ -89,8 +128,19 @@ def buscar_texto(texto, palabra):
 
     return ocurrencias, num_ocurrencias, tiempo
 
+def buscar_texto_z(texto, palabra):
+    inicio = time.perf_counter()
+    ocurrencias = z_algorithm(texto, palabra)
+    fin = time.perf_counter()
+
+    tiempo = fin - inicio
+
+    num_ocurrencias = len(ocurrencias)
+
+    return ocurrencias, num_ocurrencias, tiempo
+
 if __name__ == "__main__":
-    ruta_archivo = '/home/c4rnage/Desktop/c4rnage/repos/autocompletado-patrones/web/src/pg70652.txt'
+    ruta_archivo = '/home/c4rnage/Desktop/c4rnage/repos/autocompletado-patrones/web/src/The call of Cthulhu.txt'
 
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
@@ -104,10 +154,23 @@ if __name__ == "__main__":
     
     palabras_buscar = "Cthulhu"
 
-    ocurrencias, num_ocurrencias, tiempo = buscar_texto(texto, palabras_buscar)
+    print("=" * 80)
+    print(f"Buscando la palabra: '{palabras_buscar}'")
+    print("=" * 80)
 
-    print(ocurrencias)
+    # Probar con KMP
+    print("\n>>> ALGORITMO KMP <<<")
+    ocurrencias_kmp, num_ocurrencias_kmp, tiempo_kmp = buscar_texto(texto, palabras_buscar)
+    print(f"Ocurrencias encontradas: {num_ocurrencias_kmp}")
+    print(f"Tiempo de búsqueda: {tiempo_kmp*1000:.4f} ms")
+    print(f"Posiciones: {ocurrencias_kmp}")
 
-    imprimir_contexto(texto, palabras_buscar, ocurrencias, caracteres=50)
+    # Probar con Z-algorithm
+    print("\n>>> ALGORITMO Z <<<")
+    ocurrencias_z, num_ocurrencias_z, tiempo_z = buscar_texto_z(texto, palabras_buscar)
+    print(f"Ocurrencias encontradas: {num_ocurrencias_z}")
+    print(f"Tiempo de búsqueda: {tiempo_z*1000:.4f} ms")
+    print(f"Posiciones: {ocurrencias_z}")
 
-    print(ocurrencias)
+    # Mostrar contexto de las ocurrencias
+    imprimir_contexto(texto, palabras_buscar, ocurrencias_kmp, caracteres=50)
