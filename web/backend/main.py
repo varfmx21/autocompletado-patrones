@@ -1,10 +1,20 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware  # ← AGREGAR ESTA LÍNEA
 from pydantic import BaseModel
 from typing import List
 import kmp
 import vocabulario
 
 app = FastAPI()
+# ==================== CORS ====================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # En desarrollo permite todos los orígenes
+    allow_credentials=True,
+    allow_methods=["*"],  # Permite todos los métodos (GET, POST, DELETE, etc.)
+    allow_headers=["*"],  # Permite todos los headers
+)
 
 # ==================== MODELOS ====================
 
