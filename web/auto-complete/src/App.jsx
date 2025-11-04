@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { obtenerIndicesPatrones, obtenerSugerencias, subirArchivo } from './services/api';
+import { obtenerIndicesPatrones, obtenerIndicesPatronesZ, obtenerSugerencias, subirArchivo } from './services/api';
 
 const suggestions = [
   "React", "Vue", "Angular", "Svelte", "TailwindCSS", "JavaScript", "TypeScript", "Node.js", "HTML", "CSS", "Redux", "GraphQL"
@@ -13,6 +13,7 @@ function App() {
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [algoritmo, setAlgoritmo] = useState("KMP"); // "KMP" o "Z"
   const [estadisticas, setEstadisticas] = useState({
     totalOcurrencias: 0,
     tiempoBusqueda: 0,
@@ -80,14 +81,20 @@ function App() {
 
     try {
       setLoading(true);
-      const response = await obtenerIndicesPatrones(fileName, suggestion);
+      let response;
+      
+      if (algoritmo === "KMP") {
+        response = await obtenerIndicesPatrones(fileName, suggestion);
+      } else {
+        response = await obtenerIndicesPatronesZ(fileName, suggestion);
+      }
+      
       setindexesPatrones(response.ocurrencias || []);
       setEstadisticas(prev => ({
         ...prev,
         totalOcurrencias: response.total_ocurrencias || 0,
         tiempoBusqueda: response.tiempo_busqueda || 0,
       }));
-      console.log('Índices encontrados:', response.ocurrencias, 'palabra:', suggestion);
     } catch (err) {
       console.error('Error al obtener indices', err);
       setindexesPatrones([]);
@@ -147,16 +154,30 @@ function App() {
         {/* Sección superior: Botón de subir archivo y vista del texto */}
         <div className="w-full h-[70%] flex flex-col mb-4">
           <div className="mb-2 flex items-center justify-between">
-            <input
-              type="file"
-              accept=".txt"
-              onChange={handleFileUpload}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-700"
-            />
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept=".txt"
+                onChange={handleFileUpload}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-700"
+              />
+              
+              {/* Botón selector de algoritmo */}
+              <button
+                onClick={() => setAlgoritmo(algoritmo === "KMP" ? "Z" : "KMP")}
+                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-700 font-bold"
+              >
+                Algoritmo: {algoritmo}
+              </button>
+            </div>
             
             {/* Estadísticas */}
             {estadisticas.totalOcurrencias > 0 && (
               <div className="flex gap-6 text-sm">
+                <div>
+                  <span className="text-gray-600">Algoritmo: </span>
+                  <span className="font-bold text-purple-600">{(algoritmo)}</span>
+                </div>
                 <div>
                   <span className="text-gray-600">Coincidencias: </span>
                   <span className="font-bold text-blue-600">{estadisticas.totalOcurrencias}</span>

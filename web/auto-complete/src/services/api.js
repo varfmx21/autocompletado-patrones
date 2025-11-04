@@ -53,3 +53,22 @@ export const obtenerIndicesPatrones = async (fileName, patron) => {
         throw error;
     }
 }
+
+export const obtenerIndicesPatronesZ = async (fileName, patron) => {
+    try {
+        const response = await fetch(`${API_URL}/z`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_name: fileName,
+                patron: patron
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error en obtenerSugerencias', error);
+        throw error;
+    }
+}
