@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware  # ← AGREGAR ESTA LÍNEA
 from pydantic import BaseModel
 from typing import List
 import kmp
+import ordenamiento
 import vocabulario
 
 app = FastAPI()
@@ -251,6 +252,7 @@ async def buscar_patrones_z(request: TextSearchRequest):
     )
 
 
+
 @app.post("/autocompletado", response_model=AutoCompleteResponse)
 async def autocompletado(request: AutoCompleteRequest):
     if request.file_name not in archivos:
@@ -262,17 +264,29 @@ async def autocompletado(request: AutoCompleteRequest):
     if not request.palabra:
         raise HTTPException(
             status_code=400,
-            detail="Debes ingresar algun prefijo para sugerir."
+            detail="Debes ingresar algún prefijo para sugerir."
         )
     
-    trie = archivos[request.file_name]["vocabulario"]
+    data_archivo = archivos[request.file_name]
+    trie = data_archivo["vocabulario"]
+    texto = data_archivo["texto"]
 
     sugerencias, tiempo = vocabulario.sugerir_palabras(trie, request.palabra)
+
+    if sugerencias:
+        try:
+            sugerencias = ordenamiento.ordenamiento(sugerencias, texto)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al ordenar las sugerencias: {str(e)}"
+            )
 
     return AutoCompleteResponse(
         sugerencias=sugerencias,
         tiempo_busqueda=tiempo
     )
+
 @app.get("/vocabulario/{file_name}")
 async def obtener_vocabulario(file_name: str):
     if file_name not in archivos:
